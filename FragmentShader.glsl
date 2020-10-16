@@ -41,7 +41,7 @@ vec2 getPlaneTexCoords(vec3 contactPoint)
 bool rayPlaneIntersection(vec3 rayOrigin, vec3 rayDir,
 	out vec3 contactPoint)
 {
-
+	return false;
 }
 
 bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
@@ -54,13 +54,13 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 
 	// Check if sphere isn't behind ray's origin
 	//(if false, then sphere is in front of the origin but the intersection is not guaranteed)
-	if(OToP < 0)
+	if(OToP > 0)
 	{
 		return false;
 	}
 
 	// Calculate distance between sphere's center and the ray
-	d2 = dot(originToCenter, originToCenter) - OToP*OToP;
+	float d2 = dot(originToCenter, originToCenter) - OToP*OToP;
 
 	// Check if the ray actually intersects with sphere
 	//(if false, then the distance is less than the radius so there is an intersection)
@@ -75,6 +75,14 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 
 	// Calculate distance between origin and first intersection I1
 	float OToI1 = OToP - I1ToP;
+	// Calculate distance between origin and second intersection I2
+	float OToI2 = OToP + I1ToP;
+
+	// Calculate which point is closer to camera/eye
+	if(abs(OToI2) < abs(OToI1))
+	{
+		OToI1 = OToI2;
+	}
 
 	// Calculate contact point
 	contactPoint = rayOrigin + (OToI1 * rayDir);
@@ -91,13 +99,19 @@ vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 
 
 void main()
 {
-	color = vec4(0, 0, 0, 1);
+	color = vec4(0, 1, 0, 1);
 	const float divideBy = 400;
 
 	vec3 incomingRayDirection = -normalize(vec3(uv * fovHalfAngle, -1.0));
 
-	//TODO
-	
+	vec3 contPoint;
+	vec3 contPointNormal;
 
-	color.rgb = saturate(color.rgb / divideBy);
+	//TODO
+	if(raySphereIntersection(eyePosition, incomingRayDirection, contPoint, contPointNormal))
+	{
+		color = vec4(contPointNormal,1);
+	}
+
+	color.rgb = color.rgb; //saturate(color.rgb / divideBy);
 }
