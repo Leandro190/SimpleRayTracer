@@ -60,18 +60,18 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 	}
 
 	// Calculate distance between sphere's center and the ray
-	d = sqrt(dot(originToCenter, originToCenter) - OToP*OToP);
+	d2 = dot(originToCenter, originToCenter) - OToP*OToP;
 
 	// Check if the ray actually intersects with sphere
 	//(if false, then the distance is less than the radius so there is an intersection)
-	if(d < 0 || d > sphereRadius)
+	if(d2 > sphereRadius*sphereRadius)
 	{
 		return false;
 	}
 
 	// Calculate distance between the the intersection point I1 and
 	//the projected point P (projection of the sphere's center on the ray)
-	float I1ToP = sqrt(sphereRadius*sphereRadius - d*d); // TODO: Maybe optmize this since we only need d squared
+	float I1ToP = sqrt(sphereRadius*sphereRadius - d2);
 
 	// Calculate distance between origin and first intersection I1
 	float OToI1 = OToP - I1ToP;
