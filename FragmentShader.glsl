@@ -19,6 +19,7 @@ const vec3 planeBitangent = normalize(vec3(0, 1, -1));
 const vec3 sphereCenter = vec3(0, 0, -4);
 const float sphereRadius = 0.75;
 
+// Light parameters
 const vec3 beamCenter = vec3(5, 5, 5);
 const float beamWidth = 2;
 const float beamIntensity = 300;
@@ -41,6 +42,25 @@ vec2 getPlaneTexCoords(vec3 contactPoint)
 bool rayPlaneIntersection(vec3 rayOrigin, vec3 rayDir,
 	out vec3 contactPoint)
 {
+	// Dot product between ray and plane normal
+	float denom = dot(planeNormal, rayDir);
+
+	// Check if bigger than zero, if false then the ray and plane are parallel
+	if(denom > 0)
+	{
+		// Get vector from ray origin to plane
+		vec3 rayToPlane = planePoint - rayOrigin;
+		
+		// Calculate distance from ray to intersection point (based on equation)
+		float dist = dot(rayToPlane, planeNormal) / denom;
+		
+		// Calculate contact point
+		contactPoint = rayOrigin + (dist * rayDir);
+		
+		// Return true if distance isn't negative (i.e. plane is behind ray origin/eye)
+		return (abs(dist) >= 0);
+	}
+
 	return false;
 }
 
@@ -50,17 +70,17 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 	// Find vector between origin and center of sphere
 	// then calculate it's projection on the ray (From (O)rigin to projected point P)
 	vec3 originToCenter = sphereCenter - rayOrigin;
-	float OToP = dot(originToCenter, rayDir);
+	float oToP = dot(originToCenter, rayDir);
 
 	// Check if sphere isn't behind ray's origin
 	//(if false, then sphere is in front of the origin but the intersection is not guaranteed)
-	if(OToP > 0)
+	if(oToP > 0)
 	{
 		return false;
 	}
 
 	// Calculate distance between sphere's center and the ray
-	float d2 = dot(originToCenter, originToCenter) - OToP*OToP;
+	float d2 = dot(originToCenter, originToCenter) - oToP*oToP;
 
 	// Check if the ray actually intersects with sphere
 	//(if false, then the distance is less than the radius so there is an intersection)
@@ -71,21 +91,21 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 
 	// Calculate distance between the the intersection point I1 and
 	//the projected point P (projection of the sphere's center on the ray)
-	float I1ToP = sqrt(sphereRadius*sphereRadius - d2);
+	float i1ToP = sqrt(sphereRadius*sphereRadius - d2);
 
 	// Calculate distance between origin and first intersection I1
-	float OToI1 = OToP - I1ToP;
+	float oToI1 = oToP - i1ToP;
 	// Calculate distance between origin and second intersection I2
-	float OToI2 = OToP + I1ToP;
+	float oToI2 = oToP + i1ToP;
 
 	// Calculate which point is closer to camera/eye
-	if(abs(OToI2) < abs(OToI1))
+	if(abs(oToI2) < abs(oToI1))
 	{
-		OToI1 = OToI2;
+		oToI1 = oToI2;
 	}
 
 	// Calculate contact point
-	contactPoint = rayOrigin + (OToI1 * rayDir);
+	contactPoint = rayOrigin + (oToI1 * rayDir);
 
 	// Calculate Normal
 	contactNormal = normalize(contactPoint - sphereCenter);
@@ -93,13 +113,25 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 	return true;
 }
 
-vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere);
+vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
+{
+	// Get color (check if sphere or not)
+	// Get light direction from contactPoint to lightPos then normalize
+	// Return vec3 intensity which is the light intensity * max(0f, light Direction * contactNormal)
+	
+	
+	// LATER:
+	// Bounce to lightPos and call getTwoBounceColor * color
+	// Return final result
+}
 
-vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere);
+vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
+{
+}
 
 void main()
 {
-	color = vec4(0, 1, 0, 1);
+	color = vec4(0, 0, 0, 1);
 	const float divideBy = 400;
 
 	vec3 incomingRayDirection = -normalize(vec3(uv * fovHalfAngle, -1.0));
@@ -111,6 +143,10 @@ void main()
 	if(raySphereIntersection(eyePosition, incomingRayDirection, contPoint, contPointNormal))
 	{
 		color = vec4(contPointNormal,1);
+	}
+	else if(rayPlaneIntersection(eyePosition, incomingRayDirection, contPoint))
+	{
+		color = vec4(planeNormal,1);
 	}
 
 	color.rgb = color.rgb; //saturate(color.rgb / divideBy);
