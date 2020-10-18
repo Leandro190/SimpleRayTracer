@@ -115,18 +115,34 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 
 vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
 {
-	// Get color (check if sphere or not)
 	// Get light direction from contactPoint to lightPos then normalize
-	// Return vec3 intensity which is the light intensity * max(0f, light Direction * contactNormal)
+	vec3 lightDir = normalize(lightPos - contactPoint);
+	// Get distance from contact point to light to determine intensity
+	float dist = distance(contactPoint, lightPos);
+	// Calulcate total intensity
+	float lightIntensity = (beamIntensity * max(0, dot(lightDir, contactNormal))) / (dist*dist);
 	
+	// Specular lighting
 	
+
 	// LATER:
 	// Bounce to lightPos and call getTwoBounceColor * color
 	// Return final result
+
+	// Return color based on being sphere or not
+	if(sphere)
+	{
+		return sphereColor * lightIntensity * lightColor;
+	}
+	else
+	{
+		return lightIntensity * lightColor;
+	}
 }
 
 vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
 {
+	return vec3(0,0,0);
 }
 
 void main()
@@ -142,12 +158,31 @@ void main()
 	//TODO
 	if(raySphereIntersection(eyePosition, incomingRayDirection, contPoint, contPointNormal))
 	{
-		color = vec4(contPointNormal,1);
+		// TODO: make this loop with values from beamCenter
+		for(float i = 3; i <= 7; i+=0.5)
+		{
+			for(float j = 3; j <= 7; j+=0.5)
+			{
+				vec3 light = vec3(i,j,5);
+				vec3 oneBounce = getOneBounceColor(incomingRayDirection, contPoint, contPointNormal, light, true);
+				color += vec4(oneBounce, 1);
+			}
+		}
 	}
 	else if(rayPlaneIntersection(eyePosition, incomingRayDirection, contPoint))
 	{
-		color = vec4(planeNormal,1);
+		// TODO: make this loop with values from beamCenter
+		for(float i = 3; i <= 7; i+=0.5)
+		{
+			for(float j = 3; j <= 7; j+=0.5)
+			{
+				vec3 light = vec3(i,j,5);
+				vec3 oneBounce = getOneBounceColor(incomingRayDirection, contPoint, planeNormal, light, false);
+				vec4 planeTex = texture(planeTex, getPlaneTexCoords(contPoint));
+				color += planeTex * vec4(oneBounce,1);
+			}
+		}
 	}
 
-	color.rgb = color.rgb; //saturate(color.rgb / divideBy);
+	color.rgb = saturate(color.rgb / divideBy);
 }
