@@ -113,41 +113,91 @@ bool raySphereIntersection(vec3 rayOrigin, vec3 rayDir,
 	return true;
 }
 
+vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
+{
+	// Find reflect
+	vec3 reflectDir = normalize(reflect(rayDir, contactNormal));
+	vec3 reflectCont, reflectNormal;
+
+
+	if(sphere)
+	{
+		if(rayPlaneIntersection(contactPoint, reflectDir, reflectCont))
+		{
+			// Get light direction from contactPoint to lightPos then normalize
+			vec3 lightDir = normalize(lightPos - reflectCont);
+			// Get distance from contact point to light to determine intensity
+			float dist = distance(reflectCont, lightPos);
+			// Calculate total intensity
+			float diffusiveLight = (beamIntensity * max(0, dot(lightDir, planeNormal))) / (dist*dist);
+
+
+			vec4 planeTex = texture(planeTex, getPlaneTexCoords(reflectCont));
+
+			return (vec3(planeTex.x,planeTex.y,planeTex.z) * sphereReflectivity);
+		}
+		else
+		{
+			// If no intersections return background color
+			return vec3(1,1,1);
+		}
+	}
+	else
+	{
+		// Check intersections
+		if(raySphereIntersection(contactPoint, reflectDir, reflectCont, reflectNormal))
+		{
+			// Get light direction from contactPoint to lightPos then normalize
+			vec3 lightDir = normalize(lightPos - reflectCont);
+			// Get distance from contact point to light to determine intensity
+			float dist = distance(reflectCont, lightPos);
+			// Calculate total intensity
+			float diffusiveLight = (beamIntensity * max(0, dot(lightDir, reflectNormal))) / (dist*dist);
+
+			return (sphereColor * planeReflectivity) + diffusiveLight;
+		}
+		else
+		{
+			// If no intersections return background color
+			return vec3(1,1,1);
+		}
+	}
+}
+
 vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
 {
 	// Get light direction from contactPoint to lightPos then normalize
 	vec3 lightDir = normalize(lightPos - contactPoint);
 	// Get distance from contact point to light to determine intensity
 	float dist = distance(contactPoint, lightPos);
-	// Calulcate total intensity
+	// Calculate total intensity
 	float diffusiveLight = (beamIntensity * max(0, dot(lightDir, contactNormal))) / (dist*dist);
 	
 	// Specular lighting
 	// Calculate reflection vector
 	vec3 R = reflect(lightDir, contactNormal);
 
-	// LATER:
-	// Bounce to lightPos and call getTwoBounceColor * color
-	// Return final result
-
 	// Return color based on being sphere or not
 	if(sphere)
 	{
 		// Calculate specular intensity
 		float specular = (beamIntensity * pow(max(0, dot(R, -rayDir)), sphereReflectivity)) / (dist*dist);
-		return sphereColor * diffusiveLight * specular * lightColor;
+		return (sphereColor * diffusiveLight * specular * lightColor) * getTwoBounceColor(rayDir, contactPoint, contactNormal, lightPos, sphere);
 	}
 	else
 	{
 		// Calculate specular intensity
 		float specular = (beamIntensity * pow(max(0, dot(R, -rayDir)), planeReflectivity)) / (dist*dist);
-		return diffusiveLight * specular * lightColor;
-	}
-}
+		// Calculate shadow
+		vec3 shadowRay = normalize(lightPos - contactPoint);
+		vec3 shadowCont, shadowNormal;
+		if(raySphereIntersection(contactPoint, -shadowRay, shadowCont, shadowNormal))
+		{
+			diffusiveLight = 0;
+		}
 
-vec3 getTwoBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 lightPos, bool sphere)
-{
-	return vec3(0,0,0);
+		return (diffusiveLight * specular * lightColor) * getTwoBounceColor(rayDir, contactPoint, contactNormal, lightPos, sphere);
+	}
 }
 
 void main()
