@@ -120,10 +120,11 @@ vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 
 	// Get distance from contact point to light to determine intensity
 	float dist = distance(contactPoint, lightPos);
 	// Calulcate total intensity
-	float lightIntensity = (beamIntensity * max(0, dot(lightDir, contactNormal))) / (dist*dist);
+	float diffusiveLight = (beamIntensity * max(0, dot(lightDir, contactNormal))) / (dist*dist);
 	
 	// Specular lighting
-	
+	// Calculate reflection vector
+	vec3 R = reflect(lightDir, contactNormal);
 
 	// LATER:
 	// Bounce to lightPos and call getTwoBounceColor * color
@@ -132,11 +133,15 @@ vec3 getOneBounceColor(vec3 rayDir, vec3 contactPoint, vec3 contactNormal, vec3 
 	// Return color based on being sphere or not
 	if(sphere)
 	{
-		return sphereColor * lightIntensity * lightColor;
+		// Calculate specular intensity
+		float specular = (beamIntensity * pow(max(0, dot(R, -rayDir)), sphereReflectivity)) / (dist*dist);
+		return sphereColor * diffusiveLight * specular * lightColor;
 	}
 	else
 	{
-		return lightIntensity * lightColor;
+		// Calculate specular intensity
+		float specular = (beamIntensity * pow(max(0, dot(R, -rayDir)), planeReflectivity)) / (dist*dist);
+		return diffusiveLight * specular * lightColor;
 	}
 }
 
